@@ -1,4 +1,4 @@
-#
+# HALOS BSP buildroot main config
 
 mainmenu "Halos BSP Buildroot $HALOS_VERSION Configuration"
 
@@ -6,7 +6,7 @@ config HAVE_DOT_CONFIG
 	bool
 	default y
 
-config VERSION
+config HALOS_VERSION
 	string
 	option env="HALOS_VERSION_FULL"
 
@@ -26,6 +26,46 @@ config HOST_GCC_VERSION
 config HOST_GCC_AT_LEAST_4_5
 	bool
 	default y if HOST_GCC_VERSION = "4 5"
+
+config HOST_GCC_AT_LEAST_4_6
+	bool
+	default y if HOST_GCC_VERSION = "4 6"
+	select HOST_GCC_AT_LEAST_4_5
+
+config HOST_GCC_AT_LEAST_4_7
+	bool
+	default y if HOST_GCC_VERSION = "4 7"
+	select HOST_GCC_AT_LEAST_4_6
+
+config HOST_GCC_AT_LEAST_4_8
+	bool
+	default y if HOST_GCC_VERSION = "4 8"
+	select HOST_GCC_AT_LEAST_4_7
+
+config HOST_GCC_AT_LEAST_4_9
+	bool
+	default y if HOST_GCC_VERSION = "4 9"
+	select HOST_GCC_AT_LEAST_4_8
+
+config HOST_GCC_AT_LEAST_5
+	bool
+	default y if HOST_GCC_VERSION = "5"
+	select HOST_GCC_AT_LEAST_4_9
+
+config HOST_GCC_AT_LEAST_6
+	bool
+	default y if HOST_GCC_VERSION = "6"
+	select HOST_GCC_AT_LEAST_5
+
+config HOST_GCC_AT_LEAST_7
+	bool
+	default y if BR2_HOST_GCC_VERSION = "7"
+	select HOST_GCC_AT_LEAST_6
+
+config HOST_GCC_AT_LEAST_8
+	bool
+	default y if HOST_GCC_VERSION = "8"
+	select HOST_GCC_AT_LEAST_7
 
 # When adding new entries above, be sure to update
 # the HOSTCC_MAX_VERSION variable in the Makefile.
@@ -62,11 +102,11 @@ config HOSTARCH_NEEDS_IA32_COMPILER
 config NEEDS_HOST_UTF8_LOCALE
 	bool
 
+menu "Build options"
 
+comment "Build config for commands toolchain option"
+###########################commands ########################
 menu "Commands"
-config WGET
-	string "Wget command"
-	default "wget --passive-ftp -nd -t 3"
 
 config SVN
 	string "Subversion (svn) command"
@@ -84,55 +124,17 @@ config CVS
 	string "CVS command"
 	default "cvs"
 
-config LOCALFILES
-	string "Local files retrieval command"
+config CP
+	string "copy files command"
 	default "cp"
 
 config SCP
 	string "Secure copy (scp) command"
 	default "scp"
 
-config HG
-	string "Mercurial (hg) command"
-	default "hg"
-
-config ZCAT
-	string "zcat command"
-	default "gzip -d -c"
-	help
-	  Command to be used to extract a gzip'ed file to stdout. zcat
-	  is identical to gunzip -c except that the former may not be
-	  available on your system.
-	  Default is "gzip -d -c"
-	  Other possible values include "gunzip -c" or "zcat".
-
-config BZCAT
-	string "bzcat command"
-	default "bzcat"
-	help
-	  Command to be used to extract a bzip2'ed file to stdout.
-	  bzcat is identical to bunzip2 -c except that the former may
-	  not be available on your system.
-	  Default is "bzcat"
-	  Other possible values include "bunzip2 -c" or "bzip2 -d -c".
-
-config XZCAT
-	string "xzcat command"
-	default "xzcat"
-	help
-	  Command to be used to extract a xz'ed file to stdout.
-	  Default is "xzcat"
-
-config LZCAT
-	string "lzcat command"
-	default "lzip -d -c"
-	help
-	  Command to be used to extract a lzip'ed file to stdout.
-	  Default is "lzip -d -c"
-
 config TAR_OPTIONS
 	string "Tar options"
-	default ""
+	default "tar"
 	help
 	  Options to pass to tar when extracting the sources.
 	  E.g. " -v --exclude='*.svn*'" to exclude all .svn internal
@@ -140,40 +142,49 @@ config TAR_OPTIONS
 
 endmenu
 
-config HOST_DIR
-	string "Host dir"
-	default "$(BASE_DIR)/host"
-	help
-	  Directory to store all the binary files that are built for the
-	  host. This includes the cross compilation toolchain when
-	  building the internal buildroot toolchain.
-
-	  The default is $(BASE_DIR)/host
+###########################toolchain ########################
+menu "toolchain option"
+comment "chose toolchain option"
 
 choice
-	prompt "gcc debug level"
-	default DEBUG_2
+	prompt "Linux OS Toolchain"
+	default HISI_TOOLCHAIN
 	help
-	  Set the debug level for gcc
+	  Set the toolchain of os toolchain
 
-config DEBUG_1
-	bool "debug level 1"
+config HISI_TOOLCHAIN
+	bool "aarch64-himix100-linux"
 	help
-	  Debug level 1 produces minimal information, enough for making
-	  backtraces in parts of the program that you don't plan to
-	  debug. This includes descriptions of functions and external
-	  variables, but no information about local variables and no
-	  line numbers.
+	  The hisi toolchain
 
-config DEBUG_2
-	bool "debug level 2"
+config NOVATEK_TOOLCHAIN
+	bool "arm-ca53-linux-gnueabihf"
 	help
-	  The default gcc debug level is 2
+	  The novatek toolchain
 
-config DEBUG_3
-	bool "debug level 3"
+config TI_TOOLCHAIN
+	bool "xxxxxxxx"
 	help
-	  Level 3 includes extra information, such as all the macro
-	  definitions present in the program. Some debuggers support
-	  macro expansion when you use -g3.
+	  The TI toolchain
+
+config ROCKCHIP_TOOLCHAIN
+	bool "gcc-arm-linux-gnueabihf"
+	help
+	  The Rockchip toolchain
 endchoice
+
+choice
+	prompt "Other OS Toolchain"
+	default COTEXM_TOOLCHAIN
+	help
+	  Set the toolchain of os toolchain
+
+config COTEXM_TOOLCHAIN
+	bool "arm-none-eabi"
+	help
+	  The cotexm toolchain
+endchoice
+
+endmenu
+
+endmenu

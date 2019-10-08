@@ -1,7 +1,7 @@
 VERSION = 1
 PATCHLEVEL = 0
 SUBLEVEL = 0
-EXTRAVERSION = -rc0
+EXTRAVERSION = -release
 NAME = King_Alex
 #--------------------------------------------------------------
 # Just run 'make menuconfig', configure stuff, then run 'make'.
@@ -46,6 +46,7 @@ EXTRAMAKEARGS := O=$(CANONICAL_O)
 all:
 .PHONY: all
 
+export HALOS_VERSION := $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
 # Save running make version since it's clobbered by the make package
 RUNNING_MAKE_VERSION := $(MAKE_VERSION)
 
@@ -55,7 +56,7 @@ ifneq ($(firstword $(sort $(RUNNING_MAKE_VERSION) $(MIN_MAKE_VERSION))),$(MIN_MA
 $(error You have make '$(RUNNING_MAKE_VERSION)' installed. GNU make >= $(MIN_MAKE_VERSION) is required)
 endif
 
-export HALOS_VERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL),.$(SUBLEVEL)))$(EXTRAVERSION)
+
 # absolute path
 TOPDIR := $(CURDIR)
 HALOS_CONFIG_IN = Config.in
@@ -64,7 +65,11 @@ DATE := $(shell date +%Y%m%d)
 
 # Compute the full local version string so packages can use it as-is
 # Need to export it, so it can be got from environment in children (eg. mconf)
-export HALOS_VERSION_FULL := $(HALOS_VERSION)$(shell $(TOPDIR)/support/scripts/setlocalversion)
+export HALOS_VERSION_FULL := $(HALOS_VERSION)
+###########
+# when we need git ,we can use it to version
+#$(shell $(TOPDIR)/support/scripts/setlocalversion)
+#####
 
 # List of targets and target patterns for which .config doesn't need to be read in
 noconfig_targets := menuconfig
@@ -121,52 +126,52 @@ CONFIG_SHELL := $(SHELL)
 
 export SHELL CONFIG_SHELL Q KBUILD_VERBOSE
 
-ifndef HOSTAR
-HOSTAR := ar
+ifndef HALOS_HOSTAR
+HALOS_HOSTAR := ar
 endif
-ifndef HOSTAS
-HOSTAS := as
+ifndef HALOS_HOSTAS
+HALOS_HOSTAS := as
 endif
-ifndef HOSTCC
-HOSTCC := gcc
-HOSTCC := $(shell which $(HOSTCC) || type -p $(HOSTCC) || echo gcc)
+ifndef HALOS_HOSTCC
+HALOS_HOSTCC := gcc
+HALOS_HOSTCC := $(shell which $(HALOS_HOSTCC) || type -p $(HALOS_HOSTCC) || echo gcc)
 endif
-HOSTCC_NOCCACHE := $(HOSTCC)
-ifndef HOSTCXX
-HOSTCXX := g++
-HOSTCXX := $(shell which $(HOSTCXX) || type -p $(HOSTCXX) || echo g++)
+HALOS_HOSTCC_NOCCACHE := $(HALOS_HOSTCC)
+ifndef HALOS_HOSTCXX
+HALOS_HOSTCXX := g++
+HALOS_HOSTCXX := $(shell which $(HALOS_HOSTCXX) || type -p $(HALOS_HOSTCXX) || echo g++)
 endif
-HOSTCXX_NOCCACHE := $(HOSTCXX)
-ifndef HOSTCPP
-HOSTCPP := cpp
+HALOS_HOSTCXX_NOCCACHE := $(HALOS_HOSTCXX)
+ifndef HALOS_HOSTCPP
+HALOS_HOSTCPP := cpp
 endif
-ifndef HOSTLD
-HOSTLD := ld
+ifndef HALOS_HOSTLD
+HALOS_HOSTLD := ld
 endif
-ifndef HOSTLN
-HOSTLN := ln
+ifndef HALOS_HOSTLN
+HALOS_HOSTLN := ln
 endif
-ifndef HOSTNM
-HOSTNM := nm
+ifndef HALOS_HOSTNM
+HALOS_HOSTNM := nm
 endif
-ifndef HOSTOBJCOPY
-HOSTOBJCOPY := objcopy
+ifndef HALOS_HOSTOBJCOPY
+HALOS_HOSTOBJCOPY := objcopy
 endif
-ifndef HOSTRANLIB
-HOSTRANLIB := ranlib
+ifndef HALOS_HOSTRANLIB
+HALOS_HOSTRANLIB := ranlib
 endif
-HOSTAR := $(shell which $(HOSTAR) || type -p $(HOSTAR) || echo ar)
-HOSTAS := $(shell which $(HOSTAS) || type -p $(HOSTAS) || echo as)
-HOSTCPP := $(shell which $(HOSTCPP) || type -p $(HOSTCPP) || echo cpp)
-HOSTLD := $(shell which $(HOSTLD) || type -p $(HOSTLD) || echo ld)
-HOSTLN := $(shell which $(HOSTLN) || type -p $(HOSTLN) || echo ln)
-HOSTNM := $(shell which $(HOSTNM) || type -p $(HOSTNM) || echo nm)
-HOSTOBJCOPY := $(shell which $(HOSTOBJCOPY) || type -p $(HOSTOBJCOPY) || echo objcopy)
-HOSTRANLIB := $(shell which $(HOSTRANLIB) || type -p $(HOSTRANLIB) || echo ranlib)
+HALOS_HOSTAR := $(shell which $(HALOS_HOSTAR) || type -p $(HALOS_HOSTAR) || echo ar)
+HALOS_HOSTAS := $(shell which $(HALOS_HOSTAS) || type -p $(HALOS_HOSTAS) || echo as)
+HALOS_HOSTCPP := $(shell which $(HALOS_HOSTCPP) || type -p $(HALOS_HOSTCPP) || echo cpp)
+HALOS_HOSTLD := $(shell which $(HALOS_HOSTLD) || type -p $(HALOS_HOSTLD) || echo ld)
+HALOS_HOSTLN := $(shell which $(HALOS_HOSTLN) || type -p $(HALOS_HOSTLN) || echo ln)
+HALOS_HOSTNM := $(shell which $(HALOS_HOSTNM) || type -p $(HALOS_HOSTNM) || echo nm)
+HALOS_HOSTOBJCOPY := $(shell which $(HALOS_HOSTOBJCOPY) || type -p $(HALOS_HOSTOBJCOPY) || echo objcopy)
+HALOS_HOSTRANLIB := $(shell which $(HALOS_HOSTRANLIB) || type -p $(HALOS_HOSTRANLIB) || echo ranlib)
 SED := $(shell which sed || type -p sed) -i -e
 
-export HOSTAR HOSTAS HOSTCC HOSTCXX HOSTLD
-export HOSTCC_NOCCACHE HOSTCXX_NOCCACHE
+export HALOS_HOSTAR HALOS_HOSTAS HALOS_HOSTCC HALOS_HOSTCXX HALOS_HOSTLD
+export HALOS_HOSTCC_NOCCACHE HALOS_HOSTCXX_NOCCACHE
 
 # Determine the userland we are running on.
 #
@@ -182,7 +187,7 @@ export HOSTCC_NOCCACHE HOSTCXX_NOCCACHE
 # So, we extract the first part of the tuple the host gcc was
 # configured to generate code for; we assume this is our userland.
 #
-export HOSTARCH := $(shell LC_ALL=C $(HOSTCC_NOCCACHE) -v 2>&1 | \
+export HOSTARCH := $(shell LC_ALL=C $(HALOS_HOSTCC_NOCCACHE) -v 2>&1 | \
 	sed -e '/^Target: \([^-]*\).*/!d' \
 	    -e 's//\1/' \
 	    -e 's/i.86/x86/' \
@@ -196,16 +201,16 @@ export HOSTARCH := $(shell LC_ALL=C $(HOSTCC_NOCCACHE) -v 2>&1 | \
 
 # When adding a new host gcc version in Config.in,
 # update the HOSTCC_MAX_VERSION variable:
-HOSTCC_MAX_VERSION := 8
+HALOS_HOSTCC_MAX_VERSION := 8
 
-HOSTCC_VERSION := $(shell V=$$($(HOSTCC_NOCCACHE) --version | \
+HALOS_HOSTCC_VERSION := $(shell V=$$($(HALOS_HOSTCC_NOCCACHE) --version | \
 	sed -n -r 's/^.* ([0-9]*)\.([0-9]*)\.([0-9]*)[ ]*.*/\1 \2/p'); \
-	[ "$${V%% *}" -le $(HOSTCC_MAX_VERSION) ] || V=$(HOSTCC_MAX_VERSION); \
+	[ "$${V%% *}" -le $(HALOS_HOSTCC_MAX_VERSION) ] || V=$(HALOS_HOSTCC_MAX_VERSION); \
 	printf "%s" "$${V}")
 
 # For gcc >= 5.x, we only need the major version.
-ifneq ($(firstword $(HOSTCC_VERSION)),4)
-HOSTCC_VERSION := $(firstword $(HOSTCC_VERSION))
+ifneq ($(firstword $(HALOS_HOSTCC_VERSION)),4)
+HALOS_HOSTCC_VERSION := $(firstword $(HALOS_HOSTCC_VERSION))
 endif
 
 ifneq ($(HOST_DIR),$(BASE_DIR)/host)
@@ -228,7 +233,7 @@ prepare-kconfig: outputmakefile
 
 $(BUILD_DIR)/buildroot-config/%onf:
 	mkdir -p $(@D)/lxdialog
-	$(MAKE) CC="$(HOSTCC_NOCCACHE)" HOSTCC="$(HOSTCC_NOCCACHE)" \
+	$(MAKE) CC="$(HALOS_HOSTCC_NOCCACHE)" HOSTCC="$(HALOS_HOSTCC_NOCCACHE)" \
 	    obj=$(@D) -C $(CONFIG) -f Makefile.br $(@F)
 
 # We don't want to fully expand BR2_DEFCONFIG here, so Kconfig will
@@ -238,7 +243,7 @@ COMMON_CONFIG_ENV = \
 	KCONFIG_AUTOHEADER=$(BUILD_DIR)/buildroot-config/autoconf.h \
 	KCONFIG_TRISTATE=$(BUILD_DIR)/buildroot-config/tristate.config \
 	HALOS_CONFIG=$(HALOS_CONFIG) \
-	HOST_GCC_VERSION="$(HOSTCC_VERSION)" \
+	HOST_GCC_VERSION="$(HALOS_HOSTCC_VERSION)" \
 	BUILD_DIR=$(BUILD_DIR) \
 	SKIP_LEGACY=
 
@@ -255,10 +260,25 @@ ifeq ($(NEED_WRAPPER),y)
 	$(Q)$(TOPDIR)/support/scripts/mkmakefile $(TOPDIR) $(O)
 endif
 
+.PHONY: clean
+clean:
+	rm -rf $(BASE_TARGET_DIR) $(BINARIES_DIR) $(HOST_DIR) $(HOST_DIR_SYMLINK) \
+		$(BUILD_DIR)
+
+.PHONY: distclean
+distclean: clean
+ifeq ($(O),$(CURDIR)/output)
+	rm -rf $(O)
+endif
+	rm -rf $(HALOS_CONFIG) $(CONFIG_DIR)/.config.old $(CONFIG_DIR)/..config.tmp \
+		$(CONFIG_DIR)/.auto.deps
+
+
 .PHONY: help
 help:
 	@echo 'Cleaning:'
 	@echo '  clean                  - delete all files created by build'
+	@echo '  distclean              - delete all non-source files (including .config)'
 	@echo
 	@echo 'Build:'
 	@echo '  all                    - make world'
