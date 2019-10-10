@@ -1,0 +1,13 @@
+config TARGET_UBOOT
+	bool "U-Boot"
+	default y
+	help
+	  Build "Das U-Boot" Boot
+
+if TARGET_UBOOT
+
+if BOARDCHIP_HISI_3519
+source "opensource/uboot/hisi_3519/Config.in"
+endif
+
+endif

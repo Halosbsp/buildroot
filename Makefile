@@ -1,3 +1,4 @@
+# halos bsp build root
 VERSION = 1
 PATCHLEVEL = 0
 SUBLEVEL = 0
@@ -101,6 +102,12 @@ BASE_TARGET_DIR := $(BASE_DIR)/target
 HOST_DIR := $(BASE_DIR)/host
 
 HALOS_CONFIG = $(CONFIG_DIR)/.config
+
+# Pull in the user's configuration file
+ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
+include $(HALOS_CONFIG)
+include $(TOPDIR)/envconfig.mk
+endif
 
 # To put more focus on warnings, be less verbose as default
 # Use 'make V=1' to see the full commands
@@ -213,6 +220,37 @@ ifneq ($(firstword $(HALOS_HOSTCC_VERSION)),4)
 HALOS_HOSTCC_VERSION := $(firstword $(HALOS_HOSTCC_VERSION))
 endif
 
+ifeq ($(HAVE_DOT_CONFIG),y)
+################################################################################
+#
+# Hide troublesome environment variables from sub processes
+#
+################################################################################
+unexport CROSS_COMPILE
+unexport ARCH
+unexport CC
+unexport LD
+unexport AR
+unexport CXX
+unexport CPP
+unexport RANLIB
+unexport CFLAGS
+unexport CXXFLAGS
+unexport GREP_OPTIONS
+unexport TAR_OPTIONS
+unexport CONFIG_SITE
+unexport QMAKESPEC
+unexport TERMINFO
+unexport MACHINE
+unexport O
+unexport GCC_COLORS
+unexport PLATFORM
+unexport OS
+
+TAR_OPTIONS = $(call qstrip,$(HALOS_TAR_OPTIONS)) -xf
+
+endif
+
 ifneq ($(HOST_DIR),$(BASE_DIR)/host)
 HOST_DIR_SYMLINK = $(BASE_DIR)/host
 $(HOST_DIR_SYMLINK): $(BASE_DIR)
@@ -260,10 +298,26 @@ ifeq ($(NEED_WRAPPER),y)
 	$(Q)$(TOPDIR)/support/scripts/mkmakefile $(TOPDIR) $(O)
 endif
 
+
+# customize build
+checkenv:
+	@if [ ! -e $(BINARIES_DIR) ]; then \
+		mkdir $(BINARIES_DIR); \
+	fi
+	@if [ ! -e $(BASE_TARGET_DIR) ]; then \
+		mkdir $(BASE_TARGET_DIR); \
+	fi
+
+.PHONY: uboot
+uboot: checkenv
+	@echo "start build uboot"
+	make -C $(CURDIR)/$(UBOOT_PATH) uboot
+
+
 .PHONY: clean
 clean:
 	rm -rf $(BASE_TARGET_DIR) $(BINARIES_DIR) $(HOST_DIR) $(HOST_DIR_SYMLINK) \
-		$(BUILD_DIR)
+		$(BUILD_DIR) $(BINARIES_DIR)
 
 .PHONY: distclean
 distclean: clean
@@ -272,7 +326,6 @@ ifeq ($(O),$(CURDIR)/output)
 endif
 	rm -rf $(HALOS_CONFIG) $(CONFIG_DIR)/.config.old $(CONFIG_DIR)/..config.tmp \
 		$(CONFIG_DIR)/.auto.deps
-
 
 .PHONY: help
 help:

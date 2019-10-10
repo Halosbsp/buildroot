@@ -108,31 +108,31 @@ comment "Build config for commands toolchain option"
 ###########################commands ########################
 menu "Commands"
 
-config SVN
+config HALOS_SVN
 	string "Subversion (svn) command"
 	default "svn --non-interactive"
 
-config BZR
+config HALOS_BZR
 	string "Bazaar (bzr) command"
 	default "bzr"
 
-config GIT
+config HALOS_GIT
 	string "Git command"
 	default "git"
 
-config CVS
+config HALOS_CVS
 	string "CVS command"
 	default "cvs"
 
-config CP
+config HALOS_CP
 	string "copy files command"
 	default "cp"
 
-config SCP
+config HALOS_SCP
 	string "Secure copy (scp) command"
 	default "scp"
 
-config TAR_OPTIONS
+config HALOS_TAR_OPTIONS
 	string "Tar options"
 	default "tar"
 	help
@@ -141,50 +141,41 @@ config TAR_OPTIONS
 	  files and to be verbose.
 
 endmenu
-
-###########################toolchain ########################
-menu "toolchain option"
-comment "chose toolchain option"
+menu "Board chip select"
+comment "chose board chip option"
 
 choice
-	prompt "Linux OS Toolchain"
-	default HISI_TOOLCHAIN
-	help
-	  Set the toolchain of os toolchain
+	prompt "Linux OS Chip"
+	default BOARDCHIP_HISI
 
-config HISI_TOOLCHAIN
-	bool "aarch64-himix100-linux"
+config BOARDCHIP_HISI
+	bool "hisi"
 	help
-	  The hisi toolchain
+	  hisi chip
 
-config NOVATEK_TOOLCHAIN
-	bool "arm-ca53-linux-gnueabihf"
+config BOARDCHIP_NOVATEK
+	bool "novatek"
 	help
-	  The novatek toolchain
+	  novatek chip
 
-config TI_TOOLCHAIN
-	bool "xxxxxxxx"
+config BOARDCHIP_TI
+	bool "ti"
 	help
-	  The TI toolchain
+	  ti chip
 
-config ROCKCHIP_TOOLCHAIN
-	bool "gcc-arm-linux-gnueabihf"
+config BOARDCHIP_ROCKCHIP
+	bool "rockchip"
 	help
-	  The Rockchip toolchain
+	  rockchip chip
 endchoice
 
-choice
-	prompt "Other OS Toolchain"
-	default COTEXM_TOOLCHAIN
-	help
-	  Set the toolchain of os toolchain
-
-config COTEXM_TOOLCHAIN
-	bool "arm-none-eabi"
-	help
-	  The cotexm toolchain
-endchoice
+if BOARDCHIP_HISI
+source "config/vendor/hisi/Config.in"
+endif
 
 endmenu
 
+
 endmenu
+
+source "opensource/Config.in"

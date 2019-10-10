@@ -1,0 +1,40 @@
+menu "Hisi chip select optin"
+
+choice
+	prompt "Hisi Chip ID"
+	default BOARDCHIP_HISI_3519
+
+config BOARDCHIP_HISI_3519
+	bool "3519"
+	help
+	 3519
+
+config BOARDCHIP_HISI_3559
+	bool "3559"
+	help
+	 3559
+endchoice
+
+
+choice
+	prompt "Hisi 3519 Product ID"
+	default BOARDCHIP_HISI3519_A3
+	depends on BOARDCHIP_HISI_3519
+
+config BOARDCHIP_HISI3519_A3
+	bool "A3"
+	help
+	 A3
+
+config BOARDCHIP_HISI3519_RV
+	bool "RV"
+	help
+	 RV
+
+config BOARDCHIP_HISI3519_A4H
+	bool "A4H"
+	help
+	 A4H
+
+endchoice
+endmenu
