@@ -1,6 +1,8 @@
 menu "open source(linux,uboot,busybox)"
-comment "chose open source include linux uboot busybox rootfs"
+comment "chose open source include linux uboot busybox"
 
 source "opensource/uboot/Config.in"
+source "opensource/kernel/Config.in"
+source "opensource/busybox/Config.in"
 
 endmenu

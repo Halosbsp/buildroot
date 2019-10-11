@@ -102,6 +102,18 @@ config HOSTARCH_NEEDS_IA32_COMPILER
 config NEEDS_HOST_UTF8_LOCALE
 	bool
 
+config DEFCONFIG_FROM_ENV
+	string
+	option env="HALOS_DEFCONFIG"
+
+config HALOS_DEFCONFIG
+	string "Location to save halosbuildroot config"
+	default DEFCONFIG_FROM_ENV if DEFCONFIG_FROM_ENV != ""
+	default "$(CONFIG_DIR)/defconfig"
+	help
+	  When running 'make savedefconfig', the defconfig file will be
+	  saved in this location.
+
 menu "Build options"
 
 comment "Build config for commands toolchain option"
@@ -141,6 +153,7 @@ config HALOS_TAR_OPTIONS
 	  files and to be verbose.
 
 endmenu
+
 menu "Board chip select"
 comment "chose board chip option"
 

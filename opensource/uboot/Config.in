@@ -6,8 +6,9 @@ config TARGET_UBOOT
 
 if TARGET_UBOOT
 
-if BOARDCHIP_HISI_3519
-source "opensource/uboot/hisi_3519/Config.in"
-endif
+#if BOARDCHIP_HISI_3519
+#source "opensource/uboot/hisi_3519/Config.in"
+#endif
 
 endif
+

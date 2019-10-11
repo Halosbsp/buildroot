@@ -1,0 +1,6 @@
+config TARGET_KERNEL
+	bool "Kernel"
+	default y
+	help
+	  Build linux kernel
+

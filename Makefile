@@ -1,8 +1,8 @@
 # halos bsp build root
 VERSION = 1
 PATCHLEVEL = 0
-SUBLEVEL = 0
-EXTRAVERSION = -release
+SUBLEVEL = 1
+EXTRAVERSION = -rc
 NAME = King_Alex
 #--------------------------------------------------------------
 # Just run 'make menuconfig', configure stuff, then run 'make'.
@@ -66,15 +66,28 @@ DATE := $(shell date +%Y%m%d)
 
 # Compute the full local version string so packages can use it as-is
 # Need to export it, so it can be got from environment in children (eg. mconf)
-export HALOS_VERSION_FULL := $(HALOS_VERSION)
-###########
-# when we need git ,we can use it to version
-#$(shell $(TOPDIR)/support/scripts/setlocalversion)
-#####
+export HALOS_VERSION_FULL := $(HALOS_VERSION)$(shell $(TOPDIR)/support/scripts/setlocalversion)
 
 # List of targets and target patterns for which .config doesn't need to be read in
-noconfig_targets := menuconfig
-	
+noconfig_targets := menuconfig enuconfig nconfig gconfig xconfig config oldconfig \
+	defconfig %_defconfig distclean help
+
+# Some global targets do not trigger a build, but are used to collect
+# metadata, or do various checks. When such targets are triggered,
+# some packages should not do their configuration sanity
+# checks. Provide them a BUILDING variable set to 'y' when we're
+# actually building and they should do their sanity checks.
+#
+# We're building in two situations: when MAKECMDGOALS is empty
+# (default target is to build), or when MAKECMDGOALS contains
+# something else than one of the nobuild_targets.
+nobuild_targets := clean distclean %-show-version list-defconfigs \
+	 savedefconfig update-defconfig
+ifeq ($(MAKECMDGOALS),)
+HALOS_BUILDING = y
+else ifneq ($(filter-out $(nobuild_targets),$(MAKECMDGOALS)),)
+HALOS_BUILDING = y
+endif
 # Set variables related to in-tree or out-of-tree build.
 # Here, both $(O) and $(CURDIR) are absolute canonical paths.
 ifeq ($(O),$(CURDIR)/output)
@@ -105,6 +118,9 @@ HALOS_CONFIG = $(CONFIG_DIR)/.config
 
 # Pull in the user's configuration file
 ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
+ifeq ($(wildcard $(HALOS_CONFIG)),)
+$(error please make menuconfig or make *_defconfig in order to create $(HALOS_CONFIG))
+endif
 include $(HALOS_CONFIG)
 include $(TOPDIR)/envconfig.mk
 endif
@@ -274,9 +290,12 @@ $(BUILD_DIR)/buildroot-config/%onf:
 	$(MAKE) CC="$(HALOS_HOSTCC_NOCCACHE)" HOSTCC="$(HALOS_HOSTCC_NOCCACHE)" \
 	    obj=$(@D) -C $(CONFIG) -f Makefile.br $(@F)
 
-# We don't want to fully expand BR2_DEFCONFIG here, so Kconfig will
+DEFCONFIG = $(call qstrip,$(HALOS_DEFCONFIG))
+
+# We don't want to fully expand DEFCONFIG here, so Kconfig will
 # recognize that if it's still at its default $(CONFIG_DIR)/defconfig
 COMMON_CONFIG_ENV = \
+	HALOS_DEFCONFIG='$(call qstrip,$(value HALOS_DEFCONFIG))' \
 	KCONFIG_AUTOCONFIG=$(BUILD_DIR)/buildroot-config/auto.conf \
 	KCONFIG_AUTOHEADER=$(BUILD_DIR)/buildroot-config/autoconf.h \
 	KCONFIG_TRISTATE=$(BUILD_DIR)/buildroot-config/tristate.config \
@@ -285,8 +304,48 @@ COMMON_CONFIG_ENV = \
 	BUILD_DIR=$(BUILD_DIR) \
 	SKIP_LEGACY=
 
+xconfig: $(BUILD_DIR)/buildroot-config/qconf prepare-kconfig
+	@$(COMMON_CONFIG_ENV) $< $(HALOS_CONFIG_IN)
+
+gconfig: $(BUILD_DIR)/buildroot-config/gconf prepare-kconfig
+	@$(COMMON_CONFIG_ENV) srctree=$(TOPDIR) $< $(HALOS_CONFIG_IN)
+
 menuconfig: $(BUILD_DIR)/buildroot-config/mconf prepare-kconfig
 	@$(COMMON_CONFIG_ENV) $< $(HALOS_CONFIG_IN)
+
+nconfig: $(BUILD_DIR)/buildroot-config/nconf prepare-kconfig
+	@$(COMMON_CONFIG_ENV) $< $(HALOS_CONFIG_IN)
+
+config: $(BUILD_DIR)/buildroot-config/conf prepare-kconfig
+	@$(COMMON_CONFIG_ENV) $< $(HALOS_CONFIG_IN)
+
+oldconfig syncconfig olddefconfig: $(BUILD_DIR)/buildroot-config/conf prepare-kconfig
+	@$(COMMON_CONFIG_ENV) $< --$@ $(HALOS_CONFIG_IN)
+
+defconfig: $(BUILD_DIR)/buildroot-config/conf prepare-kconfig
+	@$(COMMON_CONFIG_ENV) $< --defconfig$(if $(DEFCONFIG),=$(DEFCONFIG)) $(HALOS_CONFIG_IN)
+
+# Override the HALOS_DEFCONFIG from COMMON_CONFIG_ENV with the new defconfig
+%_defconfig: $(BUILD_DIR)/buildroot-config/conf $(CONFIG_DIR)/config/%_defconfig prepare-kconfig
+	@$(COMMON_CONFIG_ENV) HALOS_DEFCONFIG=$(CONFIG_DIR)/config/$@ \
+		$< --defconfig=$(CONFIG_DIR)/config/$@ $(HALOS_CONFIG_IN)
+
+update-defconfig: savedefconfig
+	@if [ $(CONFIG_DIR)/defconfig != $(HALOS_DEFCONFIG) ]; then \
+		mv $(CONFIG_DIR)/defconfig $(HALOS_DEFCONFIG); \
+		echo "update $(HALOS_DEFCONFIG) succsefully! "; \
+	else \
+		echo "defconfig can't know which defconfig because it wasn't created by vendor "; \
+	fi
+
+
+savedefconfig: $(BUILD_DIR)/buildroot-config/conf prepare-kconfig
+	@$(COMMON_CONFIG_ENV) $< \
+		--savedefconfig=$(if $(DEFCONFIG),$(DEFCONFIG),$(CONFIG_DIR)/defconfig) \
+		$(HALOS_CONFIG_IN)
+	@$(SED) '/HALOS_DEFCONFIG=/d' $(if $(DEFCONFIG),$(DEFCONFIG),$(CONFIG_DIR)/defconfig)
+
+.PHONY: defconfig savedefconfig update-defconfig
 
 
 # outputmakefile generates a Makefile in the output directory, if using a
@@ -299,7 +358,7 @@ ifeq ($(NEED_WRAPPER),y)
 endif
 
 
-# customize build
+####################### customize build ##############################
 checkenv:
 	@if [ ! -e $(BINARIES_DIR) ]; then \
 		mkdir $(BINARIES_DIR); \
@@ -313,6 +372,7 @@ uboot: checkenv
 	@echo "start build uboot"
 	make -C $(CURDIR)/$(UBOOT_PATH) uboot
 
+#####################################################################
 
 .PHONY: clean
 clean:
@@ -325,7 +385,10 @@ ifeq ($(O),$(CURDIR)/output)
 	rm -rf $(O)
 endif
 	rm -rf $(HALOS_CONFIG) $(CONFIG_DIR)/.config.old $(CONFIG_DIR)/..config.tmp \
-		$(CONFIG_DIR)/.auto.deps
+		$(CONFIG_DIR)/.auto.deps $(CONFIG_DIR)/defconfig
+
+boards := $(wildcard $(CONFIG_DIR)/config/*_defconfig)
+boards := $(sort $(notdir $(boards)))
 
 .PHONY: help
 help:
@@ -334,9 +397,24 @@ help:
 	@echo '  distclean              - delete all non-source files (including .config)'
 	@echo
 	@echo 'Build:'
-	@echo '  all                    - make world'
-	@echo
+	@echo '  all                    - make all thing'
+	@echo ''
 	@echo 'Configuration:'
 	@echo '  menuconfig             - interactive curses-based configurator'
+	@echo '  nconfig                - interactive ncurses-based configurator'
+	@echo '  xconfig                - interactive Qt-based configurator'
+	@echo '  gconfig                - interactive GTK-based configurator'
+	@echo '  oldconfig              - resolve any unresolved symbols in .config'
+	@echo '  syncconfig             - Same as oldconfig, but quietly, additionally update deps'
+	@echo '  olddefconfig           - Same as syncconfig but sets new symbols to their default value'
+	@echo '  defconfig              - New config with default answer to all options;'
+	@echo '                           HALOS_DEFCONFIG, if set on the command line, is used as input'
+	@echo '  savedefconfig          - Save current config to HALOS_DEFCONFIG (minimal config)'
+	@echo '  update-defconfig       - Save current config to config dir'
+	@echo '  build config select'
+	@$(if $(boards), \
+		$(foreach b, $(boards), \
+		printf "  %-24s -Build config for %s\\n" $(b) $(subst _defconfig,,$(b));) \
+		echo '')
 
 .PHONY: $(noconfig_targets)
